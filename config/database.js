@@ -7,6 +7,10 @@ const dbConf = mysql.createPool({
     // password: 'Auntjemima17',
     // database: 'socmed',
     // port: 3306
+    connectionLimit: 1000,
+    connectTimeout: 60 * 60 * 1000,
+    acquireTimeout: 60 * 60 * 1000,
+    timeout: 60 * 60 * 1000,
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,

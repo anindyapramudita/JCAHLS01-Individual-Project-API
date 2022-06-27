@@ -7,7 +7,7 @@ module.exports = {
     getPost: async (req, res, next) => {
         try {
             let resultLikes = await dbQuery(`SELECT idPost, idLiker, dateLiked FROM likes`)
-            let resultComments = await dbQuery(`SELECT idComment, idPost, idCommenter as idUser, comment, dateCreated FROM comment`)
+            let resultComments = await dbQuery(`SELECT idComment, idPost, idCommenter as idUser, comment, dateCreated FROM comment order by dateCreated desc`)
 
 
             if (req.query.length == 0) {
@@ -235,6 +235,44 @@ module.exports = {
                     message: "post not found"
                 })
 
+            }
+        } catch (error) {
+            return next(error)
+        }
+    },
+    getComment: async (req, res, next) => {
+        try {
+
+            let filter = ``
+            let filterMore = ``
+
+            if (req.query.limit) {
+                if (req.query.page) {
+                    let startData = (req.query.page - 1) * req.query.limit
+
+                    filter += `limit ${startData}, ${req.query.limit}`
+
+                    filterMore += `limit ${startData + 1}, ${req.query.limit}`
+
+                    let comment = await dbQuery(`Select idComment, idPost, idCommenter as idUser, comment, dateCreated from comment where idPost = ${req.query.idPost} order by dateCreated desc ${filter};`)
+
+                    let moreComment = await dbQuery(`Select idComment, idPost, idCommenter as idUser, comment, dateCreated from comment where idPost = ${req.query.idPost} order by dateCreated desc ${filterMore};`)
+
+                    console.log(moreComment.length)
+                    if (moreComment.length > 0) {
+                        comment[comment.length - 1].nextData = true
+                        return res.status(200).send(comment)
+                    } else {
+                        comment[comment.length - 1].nextData = false
+                        return res.status(200).send(comment)
+                    }
+
+                } else {
+                    filter += `limit ${req.query.limit}`
+                    let comment = await dbQuery(`Select idComment, idPost, idCommenter as idUser, comment, dateCreated from comment where idPost = ${req.query.idPost} order by dateCreated desc ${filter};`)
+                    comment[comment.length - 1].nextData = false
+                    return res.status(200).send(comment)
+                }
             }
         } catch (error) {
             return next(error)
