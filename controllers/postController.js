@@ -1,4 +1,3 @@
-const { flushSync } = require('react-dom')
 const { dbConf, dbQuery } = require('../config/database')
 const { uploader } = require('../config/uploader')
 const fs = require('fs')
@@ -252,19 +251,18 @@ module.exports = {
 
                     filter += `limit ${startData}, ${req.query.limit}`
 
-                    filterMore += `limit ${startData + 1}, ${req.query.limit}`
+                    filterMore += `limit ${req.query.page * req.query.limit}, ${req.query.limit}`
 
                     let comment = await dbQuery(`Select idComment, idPost, idCommenter as idUser, comment, dateCreated from comment where idPost = ${req.query.idPost} order by dateCreated desc ${filter};`)
 
                     let moreComment = await dbQuery(`Select idComment, idPost, idCommenter as idUser, comment, dateCreated from comment where idPost = ${req.query.idPost} order by dateCreated desc ${filterMore};`)
 
-                    console.log(moreComment.length)
+
                     if (moreComment.length > 0) {
-                        comment[comment.length - 1].nextData = true
-                        return res.status(200).send(comment)
+                        return res.status(200).send({ comment, nextData: true })
                     } else {
-                        comment[comment.length - 1].nextData = false
-                        return res.status(200).send(comment)
+                        return res.status(200).send({ comment, nextData: false })
+
                     }
 
                 } else {
@@ -277,5 +275,194 @@ module.exports = {
         } catch (error) {
             return next(error)
         }
-    }
+    },
+    getPostCopy: async (req, res, next) => {
+        try {
+            let resultLikes = await dbQuery(`SELECT idPost, idLiker, dateLiked FROM likes`)
+            let resultComments = await dbQuery(`SELECT idComment, idPost, idCommenter as idUser, comment, dateCreated FROM comment order by dateCreated desc`)
+
+
+            if (req.query.length == 0) {
+                let resultPost = await dbQuery(`SELECT p.idPost, p.idUser, u.username, u.fullName, p.image, p.caption, p.dateCreated FROM posts p
+                JOIN users u ON u.idUser = p.idUser;`)
+
+                resultPost.forEach((val) => {
+                    val.likes = [];
+                    resultLikes.forEach((valLike) => {
+                        if (val.idPost == valLike.idPost) {
+                            val.likes.push(valLike.idLiker)
+                        }
+                    })
+                })
+
+                resultPost.forEach((val) => {
+                    val.comment = [];
+                    resultComments.forEach((valComment) => {
+                        if (val.idPost == valComment.idPost) {
+                            val.comment.push(valComment)
+                        }
+                    })
+                })
+
+                resultPost.forEach(val => {
+                    let defaultMonth = ["January", "February", "March", "April", "June", "July", "August", "September", "October", "November", "December"]
+
+                    let year = val.dateCreated.slice(0, 4)
+                    let month = defaultMonth(parseInt(val.dateCreated.slice(5, 7)))
+                    let date = val.dateCreated.slice(8, 10)
+                    val.dateCreated = `${date} ${month} ${year}`
+                })
+
+
+                return res.status(200).send(resultPost)
+            } else {
+                let filterKey = ['idPost', 'idUser', 'order', 'username']
+                let filter = ''
+                let limit = ''
+                let hasMore = ''
+
+                for (const key in req.query) {
+                    filterKey.forEach((val, id) => {
+                        if (key == val) {
+                            if (key == 'idPost' || key == 'idUser') {
+                                if (filter) {
+                                    filter += ` and p.${key} = ${req.query[key]}`
+                                } else {
+                                    filter += `where p.${key} = ${req.query[key]}`
+                                }
+                            } else if (key == 'username') {
+                                if (filter) {
+                                    filter += ` and u.${key} = '${req.query[key]}'`
+                                } else {
+                                    filter += `where u.${key} = '${req.query[key]}'`
+                                }
+                            } else if (key == 'order') {
+                                if (filter) {
+                                    filter += ` order by idPost ${req.query.order}`
+                                } else {
+                                    filter += `order by idPost ${req.query.order}`
+                                }
+                            }
+                        }
+                    })
+                }
+
+                if (req.query.limit) {
+                    let startData = (req.query.page - 1) * req.query.limit
+
+                    limit += `limit ${startData}, ${req.query.limit}`
+
+                    hasMore += `limit ${req.query.page * req.query.limit}, ${req.query.limit}`
+
+                    let resultPost = await dbQuery(`SELECT p.idPost, p.idUser, u.username, u.fullName, p.image, p.caption, p.dateCreated FROM posts p
+                    JOIN users u ON u.idUser = p.idUser ${filter} ${limit};`)
+
+                    let moreData = await dbQuery(`SELECT p.idPost, p.idUser, u.username, u.fullName, p.image, p.caption, p.dateCreated FROM posts p
+                    JOIN users u ON u.idUser = p.idUser ${filter} ${hasMore};`)
+
+                    resultPost.forEach((val) => {
+                        val.likes = [];
+                        resultLikes.forEach((valLike) => {
+                            if (val.idPost == valLike.idPost) {
+                                val.likes.push(valLike.idLiker)
+                            }
+                        })
+                    })
+
+                    resultPost.forEach((val) => {
+                        val.comment = [];
+                        resultComments.forEach((valComment) => {
+                            if (val.idPost == valComment.idPost) {
+                                val.comment.push(valComment)
+                            }
+                        })
+                    })
+
+                    resultPost.forEach(val => {
+                        // val.dateCreated = val.dateCreated.toString().split("").slice(4, 15).join("")
+                        val.dateCreated = val.dateCreated.toString().split("").slice(4, 10).join("")
+                    })
+
+                    if (moreData.length > 0) {
+                        let nextData = true
+
+                        if (req.query.likes) {
+                            let filterLike = [];
+                            for (let i = 0; i < resultPost.length; i++) {
+                                for (let j = 0; j < resultPost[i].likes.length; j++) {
+                                    if (resultPost[i].likes[j] == req.query.likes) {
+                                        filterLike.push(resultPost[i])
+                                    }
+                                }
+                            }
+                            return res.status(200).send({ post: filterLike, nextData })
+                        } else {
+                            return res.status(200).send({ post: resultPost, nextData })
+                        }
+                    } else {
+                        let nextData = false
+                        if (req.query.likes) {
+                            let filterLike = [];
+                            for (let i = 0; i < resultPost.length; i++) {
+                                for (let j = 0; j < resultPost[i].likes.length; j++) {
+                                    if (resultPost[i].likes[j] == req.query.likes) {
+                                        filterLike.push(resultPost[i])
+                                    }
+                                }
+                            }
+                            return res.status(200).send({ post: filterLike, nextData })
+                        } else {
+                            return res.status(200).send({ post: resultPost, nextData })
+                        }
+
+                    }
+                } else {
+
+                    let resultPost = await dbQuery(`SELECT p.idPost, p.idUser, u.username, u.fullName, p.image, p.caption, p.dateCreated FROM posts p
+                    JOIN users u ON u.idUser = p.idUser ${filter} ${limit};`)
+
+                    resultPost.forEach((val) => {
+                        val.likes = [];
+                        resultLikes.forEach((valLike) => {
+                            if (val.idPost == valLike.idPost) {
+                                val.likes.push(valLike.idLiker)
+                            }
+                        })
+                    })
+
+                    resultPost.forEach((val) => {
+                        val.comment = [];
+                        resultComments.forEach((valComment) => {
+                            if (val.idPost == valComment.idPost) {
+                                val.comment.push(valComment)
+                            }
+                        })
+                    })
+
+                    resultPost.forEach(val => {
+                        // val.dateCreated = val.dateCreated.toString().split("").slice(4, 15).join("")
+                        val.dateCreated = val.dateCreated.toString().split("").slice(4, 10).join("")
+                    })
+
+                    if (req.query.likes) {
+                        let filterLike = [];
+                        for (let i = 0; i < resultPost.length; i++) {
+                            for (let j = 0; j < resultPost[i].likes.length; j++) {
+                                if (resultPost[i].likes[j] == req.query.likes) {
+                                    filterLike.push(resultPost[i])
+                                }
+                            }
+                        }
+                        return res.status(200).send(filterLike)
+                    } else {
+                        return res.status(200).send(resultPost)
+                    }
+                }
+
+
+            }
+        } catch (error) {
+            return next(error)
+        }
+    },
 }

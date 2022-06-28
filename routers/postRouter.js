@@ -10,5 +10,6 @@ router.post('/addComment', postController.addComment);
 router.post('/addPost', postController.addPhoto, readToken);
 router.delete('/delete', postController.deletePost, readToken);
 router.get('/getComment', postController.getComment);
+router.get('/getCopy', postController.getPostCopy);
 
 module.exports = router;
