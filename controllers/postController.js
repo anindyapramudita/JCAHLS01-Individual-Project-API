@@ -3,7 +3,7 @@ const { uploader } = require('../config/uploader')
 const fs = require('fs')
 
 module.exports = {
-    getPost: async (req, res, next) => {
+    getPostCopy: async (req, res, next) => {
         try {
             let resultLikes = await dbQuery(`SELECT idPost, idLiker, dateLiked FROM likes`)
             let resultComments = await dbQuery(`SELECT idComment, idPost, idCommenter as idUser, comment, dateCreated FROM comment order by dateCreated desc`)
@@ -276,7 +276,7 @@ module.exports = {
             return next(error)
         }
     },
-    getPostCopy: async (req, res, next) => {
+    getPost: async (req, res, next) => {
         try {
             let resultLikes = await dbQuery(`SELECT idPost, idLiker, dateLiked FROM likes`)
             let resultComments = await dbQuery(`SELECT idComment, idPost, idCommenter as idUser, comment, dateCreated FROM comment order by dateCreated desc`)

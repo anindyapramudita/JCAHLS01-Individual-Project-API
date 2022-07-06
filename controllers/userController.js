@@ -52,7 +52,14 @@ module.exports = {
                 let result = await dbQuery(`Select idUser, fullName, username, email, bio, profilePicture from users where idUser='${insertData.insertId}';`)
 
                 let { idUser, fullName, username, email } = result[0]
+
                 let token = createToken({ idUser, fullName, username, email })
+
+                await dbQuery(`Update users set lastToken = '${token}' WHERE idUser=${insertData.insertId};`)
+
+                let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where idUser='${insertData.insertId}';`)
+
+                // await dbQuery(`Insert into users (lastToken) value ('${token}') WHERE idUser=${insertData.insertId};`)
 
                 await transporter.sendMail({
                     from: "Social Media Admin",
@@ -66,7 +73,7 @@ module.exports = {
                     </div>`
                 })
 
-                return res.status(200).send({ ...result[0], token })
+                return res.status(200).send({ ...finalResult[0], token })
             } else {
                 return res.status(404).send({
                     success: false,
@@ -170,7 +177,7 @@ module.exports = {
     getDataVerification: async (req, res, next) => {
         try {
             if (req.dataUser.idUser) {
-                let result = await dbQuery(`Select idUser, fullName, email from users where idUser = '${req.dataUser.idUser}';`)
+                let result = await dbQuery(`Select idUser, fullName, email, lastToken from users where idUser = '${req.dataUser.idUser}';`)
                 return res.status(200).send(result[0])
             } else {
                 return res.status(401).send({
@@ -185,12 +192,21 @@ module.exports = {
     verifyAccount: async (req, res, next) => {
         try {
             if (req.dataUser.idUser) {
-                await dbQuery(`UPDATE users SET status = 'Verified' WHERE idUser = ${req.dataUser.idUser}`)
-                let result = await dbQuery(`Select idUser, fullName, username, email, bio, profilePicture from users where idUser = '${req.dataUser.idUser}';`)
+                let lastToken = await (`select lastToken from users WHERE idUSer = ${req.dataUser.idUser}`)
+                if (req.token == lastToken) {
+                    await dbQuery(`UPDATE users SET status = 'Verified' WHERE idUser = ${req.dataUser.idUser}`)
+                    let result = await dbQuery(`Select idUser, fullName, username, email, bio, profilePicture from users where idUser = '${req.dataUser.idUser}';`)
 
-                let { idUser, fullName, username, email } = result[0]
-                let token = createToken({ idUser, fullName, username, email })
-                return res.status(200).send({ ...result[0], token })
+                    let { idUser, fullName, username, email } = result[0]
+
+                    let token = createToken({ idUser, fullName, username, email })
+                    return res.status(200).send({ ...result[0], token })
+                } else {
+                    return res.status(404).send({
+                        success: false,
+                        message: "Token expired"
+                    })
+                }
             } else {
                 return res.status(404).send({
                     success: false,
@@ -209,6 +225,11 @@ module.exports = {
                 let { idUser, fullName, username, email } = data[0]
                 let token = createToken({ idUser, fullName, username, email })
 
+                await dbQuery(`Update users set lastToken = '${token}' WHERE idUser=${req.dataUser.idUser};`)
+
+                let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where idUser='${req.dataUser.idUser}';`)
+
+
                 await transporter.sendMail({
                     from: "Social Media Admin",
                     to: email,
@@ -220,7 +241,7 @@ module.exports = {
                     <a href="${process.env.FE_URL}/verification/${token}">Click here</a>
                     </div>`
                 })
-                return res.status(200).send({ ...data[0], token })
+                return res.status(200).send({ ...finalResult[0], token })
             } else {
                 return res.status(401).send({
                     success: false,
