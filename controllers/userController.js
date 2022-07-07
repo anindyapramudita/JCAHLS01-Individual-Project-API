@@ -2,6 +2,7 @@ const { dbConf, dbQuery } = require('../config/database')
 const { hashPassword, createToken } = require('../config/encription')
 const { transporter } = require("../config/nodemailer")
 const { uploader } = require('../config/uploader')
+const fs = require('fs')
 
 module.exports = {
     getData: async (req, res, next) => {
@@ -57,14 +58,19 @@ module.exports = {
 
                 await dbQuery(`Update users set lastToken = '${token}' WHERE idUser=${insertData.insertId};`)
 
-                let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where idUser='${insertData.insertId}';`)
+                let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where idUser=${insertData.insertId};`)
 
-                // await dbQuery(`Insert into users (lastToken) value ('${token}') WHERE idUser=${insertData.insertId};`)
+
+                // let verificationEmail = fs.readFileSync('./mail/verification.html').toString()
+
+                // verificationEmail = verificationEmail.replace('#fullname', fullName)
+                // verificationEmail = verificationEmail.replace('#token', `${process.env.FE_URL}/verification/${token}`)
 
                 await transporter.sendMail({
                     from: "Social Media Admin",
                     to: email,
                     subject: "Email Verification",
+                    // html: `${verificationEmail}`
                     html: `<div>
                     <h1>You're one step closer to get the full access!</h1>
                     <br/>
@@ -191,9 +197,12 @@ module.exports = {
     },
     verifyAccount: async (req, res, next) => {
         try {
+            // console.log(req.dataUser.idUser)
             if (req.dataUser.idUser) {
-                let lastToken = await (`select lastToken from users WHERE idUSer = ${req.dataUser.idUser}`)
-                if (req.token == lastToken) {
+                let lastToken = await dbQuery(`select lastToken from users WHERE idUSer = ${req.dataUser.idUser}`)
+                console.log("lastToken", lastToken[0].lastToken)
+                console.log("req token", req.token)
+                if (req.token == lastToken[0].lastToken) {
                     await dbQuery(`UPDATE users SET status = 'Verified' WHERE idUser = ${req.dataUser.idUser}`)
                     let result = await dbQuery(`Select idUser, fullName, username, email, bio, profilePicture from users where idUser = '${req.dataUser.idUser}';`)
 
@@ -227,7 +236,7 @@ module.exports = {
 
                 await dbQuery(`Update users set lastToken = '${token}' WHERE idUser=${req.dataUser.idUser};`)
 
-                let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where idUser='${req.dataUser.idUser}';`)
+                let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where idUser=${req.dataUser.idUser};`)
 
 
                 await transporter.sendMail({
@@ -259,6 +268,10 @@ module.exports = {
             let { idUser, fullName, username, email } = data[0]
             let token = createToken({ idUser, fullName, username, email })
 
+            await dbQuery(`Update users set lastToken = '${token}' WHERE email='${req.body.email}';`)
+            let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where email='${req.body.email}';`)
+
+
             await transporter.sendMail({
                 from: "Social Media Admin",
                 to: email,
@@ -270,7 +283,7 @@ module.exports = {
                     <a href="${process.env.FE_URL}/reset/${token}">Click here</a>
                     </div>`
             })
-            return res.status(200).send({ ...data[0], token })
+            return res.status(200).send({ ...finalResult[0], token })
         } catch (error) {
             return next(error)
         }

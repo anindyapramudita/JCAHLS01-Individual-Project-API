@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Email</title>
+    <style type="text/css">
+        div {
+            /* display: flex;
+            flex-direction: column;
+            align-items: center; */
+            padding: 0;
+            padding-top: 50px;
+        }
+
+        button {
+            background-color: #1F8598;
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 5px;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+
+        img {
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        h1,
+        h3 {
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        h3 {
+            color: #1B2224;
+            font-size: 15px;
+            font-weight: 100;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <img src="https://media.makeameme.org/created/hello-welcome-5af9a4.jpg" />
+        <h1>Welcome #fullname!</h1>
+        <h3>Thank you for joining us.</h3>
+        <h3>Please verify your email address by clicking the button below :</h3>
+        <a href="#token">
+            <button>Click here</button>
+        </a>
+        <!-- <a href="${process.env.FE_URL}/verification/${token}">Click here</a> -->
+    </div>
+</body>
+
+</html>
