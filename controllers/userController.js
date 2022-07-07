@@ -61,22 +61,16 @@ module.exports = {
                 let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where idUser=${insertData.insertId};`)
 
 
-                // let verificationEmail = fs.readFileSync('./mail/verification.html').toString()
+                let verificationEmail = fs.readFileSync('./mail/verification.html').toString()
 
-                // verificationEmail = verificationEmail.replace('#fullname', fullName)
-                // verificationEmail = verificationEmail.replace('#token', `${process.env.FE_URL}/verification/${token}`)
+                verificationEmail = verificationEmail.replace('#fullname', fullName)
+                verificationEmail = verificationEmail.replace('#token', `${process.env.FE_URL}/verification/${token}`)
 
                 await transporter.sendMail({
                     from: "Social Media Admin",
                     to: email,
                     subject: "Email Verification",
-                    // html: `${verificationEmail}`
-                    html: `<div>
-                    <h1>You're one step closer to get the full access!</h1>
-                    <br/>
-                    <h3>Verify your account now :</h3>
-                    <a href="${process.env.FE_URL}/verification/${token}">Click here</a>
-                    </div>`
+                    html: `${verificationEmail}`
                 })
 
                 return res.status(200).send({ ...finalResult[0], token })
@@ -209,6 +203,9 @@ module.exports = {
                     let { idUser, fullName, username, email } = result[0]
 
                     let token = createToken({ idUser, fullName, username, email })
+
+                    await dbQuery(`Update users set lastToken = '${token}' WHERE idUser=${req.dataUser.idUser};`)
+
                     return res.status(200).send({ ...result[0], token })
                 } else {
                     return res.status(404).send({
