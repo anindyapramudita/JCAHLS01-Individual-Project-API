@@ -2,19 +2,14 @@ const mysql = require('mysql');
 const util = require('util');
 
 const dbConf = mysql.createPool({
-    // host: 'localhost',
-    // user: 'anindyapramudita',
-    // password: 'Auntjemima17',
-    // database: 'socmed',
-    // port: 3306
     connectionLimit: 1000,
     connectTimeout: 60 * 60 * 1000,
     acquireTimeout: 60 * 60 * 1000,
     timeout: 60 * 60 * 1000,
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+    host: process.env.DB_HOST_TEST,
+    user: process.env.DB_USER_TEST,
+    password: process.env.DB_PASSWORD_TEST,
+    database: process.env.DB_NAME_TEST,
     port: process.env.DB_PORT
 })
 

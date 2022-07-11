@@ -144,7 +144,7 @@ module.exports = {
         try {
             await dbQuery(`UPDATE users SET fullName = '${req.body.fullName}', username = '${req.body.username}', bio = '${req.body.bio}' WHERE idUser = ${req.query.idUser}`)
 
-            let resultUpdated = await dbQuery(`Select * from Users where idUser = ${req.query.idUser} `)
+            let resultUpdated = await dbQuery(`Select * from users where idUser = ${req.query.idUser} `)
 
             res.status(200).send(resultUpdated)
         } catch (error) {
@@ -235,18 +235,30 @@ module.exports = {
 
                 let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where idUser=${req.dataUser.idUser};`)
 
+                let verificationEmail = fs.readFileSync('./mail/verification.html').toString()
+
+                verificationEmail = verificationEmail.replace('#fullname', fullName)
+                verificationEmail = verificationEmail.replace('#token', `${process.env.FE_URL}/verification/${token}`)
 
                 await transporter.sendMail({
                     from: "Social Media Admin",
                     to: email,
                     subject: "Email Verification",
-                    html: `<div>
-                    <h1>You're one step closer to get the full access!</h1>
-                    <br/>
-                    <h3>Verify your account now :</h3>
-                    <a href="${process.env.FE_URL}/verification/${token}">Click here</a>
-                    </div>`
+                    html: `${verificationEmail}`
                 })
+
+                // await transporter.sendMail({
+                //     from: "Social Media Admin",
+                //     to: email,
+                //     subject: "Email Verification",
+                //     html: `<div>
+                //     <h1>You're one step closer to get the full access!</h1>
+                //     <br/>
+                //     <h3>Verify your account now :</h3>
+                //     <a href="${process.env.FE_URL}/verification/${token}">Click here</a>
+                //     </div>`
+                // })
+
                 return res.status(200).send({ ...finalResult[0], token })
             } else {
                 return res.status(401).send({
@@ -268,18 +280,29 @@ module.exports = {
             await dbQuery(`Update users set lastToken = '${token}' WHERE email='${req.body.email}';`)
             let finalResult = dbQuery(`Select idUser, fullName, username, email, bio, profilePicture, lastToken from users where email='${req.body.email}';`)
 
+            let resetPassword = fs.readFileSync('./mail/resetPassword.html').toString()
+
+            resetPassword = resetPassword.replace('#fullname', fullName)
+            resetPassword = resetPassword.replace('#token', `${process.env.FE_URL}/reset/${token}`)
 
             await transporter.sendMail({
                 from: "Social Media Admin",
                 to: email,
                 subject: "Reset Password",
-                html: `<div>
-                    <h1>A little bit more and you'll gain access back!</h1>
-                    <br/>
-                    <h3>Reset your password here :</h3>
-                    <a href="${process.env.FE_URL}/reset/${token}">Click here</a>
-                    </div>`
+                html: `${resetPassword}`
             })
+
+            // await transporter.sendMail({
+            //     from: "Social Media Admin",
+            //     to: email,
+            //     subject: "Reset Password",
+            //     html: `<div>
+            //         <h1>A little bit more and you'll gain access back!</h1>
+            //         <br/>
+            //         <h3>Reset your password here :</h3>
+            //         <a href="${process.env.FE_URL}/reset/${token}">Click here</a>
+            //         </div>`
+            // })
             return res.status(200).send({ ...finalResult[0], token })
         } catch (error) {
             return next(error)
