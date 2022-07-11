@@ -28,4 +28,8 @@ const { userRouter, postRouter } = require('./routers');
 app.use('/user', userRouter)
 app.use('/posting', postRouter)
 
+app.get('/', (req, res) => {
+    res.status(200).send("<h1>JCAHLS E-Commerce API</h1>")
+})
+
 app.listen(PORT, () => console.log(`Running at: http://localhost:${PORT}`));
